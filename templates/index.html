@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analyse Prédictive du Risque de Défaut</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            width: 300px;
+            text-align: left;
+        }
+
+        h2 {
+            color: #004080;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin: 10px 0 5px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #004080;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #002060;
+        }
+
+        .prediction {
+            margin-top: 20px;
+            color: #004080;
+            font-weight: bold;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <form action="{{ url_for('predict')}}" method="post">
+            <h2>Analyse du Risque de Défaut</h2>
+
+            <label for="first">Lignes de Crédit en Cours</label>
+            <input id="first" name="lignes de crédit en cours" type="number" required>
+
+            <label for="second">Montant du Prêt en Cours</label>
+            <input id="second" name="montant du prêt en cours" type="number" required>
+
+            <label for="third">Dette Totale en Cours</label>
+            <input id="third" name="dette totale en cours" type="number" required>
+
+            <label for="fourth">Revenu</label>
+            <input id="fourth" name="revenu" type="number" step="0.01" required>
+
+            <label for="fifth">Années d'Emploi</label>
+            <input id="fifth" name="années d'emploi" type="number" required>
+
+            <label for="sixth">Score FICO</label>
+            <input id="sixth" name="score FICO" type="number" required>
+
+            <button type="submit">Calculer le Risque</button>
+        </form>
+
+        <div class="prediction">{{ prediction_text }}</div>
+    </div>
+
+</body>
+
+</html>
