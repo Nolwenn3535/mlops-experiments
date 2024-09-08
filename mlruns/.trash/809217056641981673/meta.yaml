@@ -1,7 +1,0 @@
-artifact_location: mlflow-artifacts:/809217056641981673
-creation_time: 1725784207618
-experiment_id: '809217056641981673'
-last_update_time: 1725784955435
-lifecycle_stage: deleted
-name: Client_Default_Prediction
-tags: {}
