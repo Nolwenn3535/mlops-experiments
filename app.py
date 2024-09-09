@@ -4,7 +4,7 @@ import pandas as pd
 
 
 app = Flask(__name__)
-model = pickle.load(open("random_forest_model.pkl", "rb"))
+model = pickle.load(open("random_forest_model2.pkl", "rb"))
 
 
 def model_pred(features):

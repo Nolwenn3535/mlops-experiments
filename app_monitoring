@@ -2,95 +2,97 @@ from flask import Flask, render_template, request
 import pickle
 import pandas as pd
 import os
-##
 from arize.pandas.logger import Client, Schema
 from arize.utils.types import ModelTypes, Environments
-##
 from dotenv import load_dotenv
-load_dotenv()
 import datetime
 
-ARIZE_SPACE_KEY=os.getenv("SPACE_KEY")
+# Load environment variables
+load_dotenv()
+ARIZE_SPACE_KEY = os.getenv("SPACE_KEY")
 ARIZE_API_KEY = os.getenv("API_KEY")
 
-# Initialize Arize client with your space key and api key
+# Initialize Arize client with your space key and API key
 arize_client = Client(space_key=ARIZE_SPACE_KEY, api_key=ARIZE_API_KEY)
 
 # Define the schema for your data
 schema = Schema(
     prediction_id_column_name="prediction_id",
     timestamp_column_name="timestamp",
-    feature_column_names=["Age", "RestingBP", "Cholesterol", "FastingBS", "MaxHR", "Oldpeak"],
+    feature_column_names=[
+        "credit_lines_outstanding", "loan_amt_outstanding", 
+        "total_debt_outstanding", "income", "years_employed", "fico_score"
+    ],
     prediction_label_column_name="prediction_label",
     actual_label_column_name="actual_label"
 )
 
-
 app = Flask(__name__)
-model = pickle.load(open("catboost_model-2.pkl", "rb"))
-
+model = pickle.load(open("random_forest_model.pkl", "rb"))
 
 def model_pred(features):
     test_data = pd.DataFrame([features])
     prediction = model.predict(test_data)
     return int(prediction[0])
 
-
 @app.route("/", methods=["GET"])
 def Home():
     return render_template("index.html")
 
-
 @app.route("/predict", methods=["POST"])
 def predict():
     if request.method == "POST":
-        Age = int(request.form["Age"])
-        RestingBP = int(request.form["RestingBP"])
-        Cholesterol = int(request.form["Cholesterol"])
-        Oldpeak = float(request.form["Oldpeak"])
-        FastingBS = int(request.form["FastingBS"])
-        MaxHR = int(request.form["MaxHR"])
+        # Collect input data from form
+        credit_lines_outstanding = int(request.form["lignes de crédit en cours"])
+        loan_amt_outstanding = int(request.form["montant du prêt en cours"])
+        total_debt_outstanding = int(request.form["dette totale en cours"])
+        income = float(request.form["revenu"])
+        years_employed = int(request.form["années d'emploi"])
+        fico_score = int(request.form["score FICO"])
+        
+        # Prepare the data for prediction
+        features = {
+            'credit_lines_outstanding': credit_lines_outstanding,
+            'loan_amt_outstanding': loan_amt_outstanding,
+            'total_debt_outstanding': total_debt_outstanding,
+            'income': income,
+            'years_employed': years_employed,
+            'fico_score': fico_score
+        }
 
-        # Assume you have actual labels available for evaluation
-        actual_label = int(request.form.get("actual_label for evaluation", 1))  # Default to -1 if not provided
-        #
+        # Make a prediction with the loaded model
+        prediction = model_pred(features)
 
-        prediction = model.predict(
-            [[Age, RestingBP, Cholesterol, FastingBS, MaxHR, Oldpeak]]
-        )
-        # Log the prediction to Arize
+        # Assume an actual label for demonstration; this could be replaced with real data
+        actual_label = int(request.form.get("actual_label", 1))  # Default to 1 if not provided
+
+        # Create a unique prediction ID and timestamp
         timestamp = pd.Timestamp.now()
+        prediction_id = str(timestamp.timestamp())
 
-        # Log the prediction to Arize
+        # Prepare data for logging to Arize
         data = {
-            "prediction_id": [str(timestamp.timestamp())],  # Unique ID for each prediction
+            "prediction_id": [prediction_id],
             "timestamp": [timestamp],
-            "Age": [Age],
-            "RestingBP": [RestingBP],
-            "Cholesterol": [Cholesterol],
-            "FastingBS": [FastingBS],
-            "MaxHR": [MaxHR],
-            "Oldpeak": [Oldpeak],
-            "prediction_label": [int(prediction[0])],
-            "actual_label": [actual_label]             
+            "credit_lines_outstanding": [credit_lines_outstanding],
+            "loan_amt_outstanding": [loan_amt_outstanding],
+            "total_debt_outstanding": [total_debt_outstanding],
+            "income": [income],
+            "years_employed": [years_employed],
+            "fico_score": [fico_score],
+            "prediction_label": [prediction],
+            "actual_label": [actual_label]
         }
         dataframe = pd.DataFrame(data)
 
-        # Debug prints
-        print("DataFrame:")
-        print(dataframe)
-        print("Schema:")
-        print(schema)
-        
-        try: 
+        # Log the prediction to Arize
+        try:
             response = arize_client.log(
-                dataframe = dataframe,
-                model_id="your_model_id",
+                dataframe=dataframe,
+                model_id="your_model_id",  # Replace with your actual model ID
                 model_version="v1",
                 model_type=ModelTypes.SCORE_CATEGORICAL,
                 environment=Environments.PRODUCTION,
-                #features=features,
-                #prediction_label = [int(prediction[0])],
                 schema=schema
             )
 
@@ -98,20 +100,18 @@ def predict():
                 print(f"Failed to log data to Arize: {response.text}")
             else:
                 print("Successfully logged data to Arize")
+
         except Exception as e:
-            print(f"An error occured: {e}")
-        
-        if prediction[0] == 1:
-            return render_template(
-                "index.html",
-                prediction_text="Kindly make an appointment with the doctor!",
-            )
+            print(f"An error occurred: {e}")
 
+        # Determine prediction result
+        if prediction == 1:
+            prediction_text = "Le client est à risque de défaut de paiement."
         else:
-            return render_template(
-                "index.html", prediction_text="You are well. No worries :)"
-            )
+            prediction_text = "Le client n'est pas à risque de défaut de paiement."
 
+        # Render the result on the webpage
+        return render_template("index.html", prediction_text=prediction_text)
     else:
         return render_template("index.html")
 
